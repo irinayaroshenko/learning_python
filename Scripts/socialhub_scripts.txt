@@ -1,0 +1,137 @@
+# Update permanent data
+async def main():
+    async with create_game_client(email="testlogin1@test.iv") as game_client:
+        await game_client.socialhubs.enter_any()
+        async with create_game_client(email="testlogin2@test.iv") as game_client2:
+            await game_client2.socialhubs.enter_any()
+            socialhub_info = await game_client.socialhubs.get_socialhub_info_push()
+            print("Socialhub Info. Player 1\n", socialhub_info, sep="")
+            _ = await game_client2.socialhubs.get_socialhub_info_push()
+            print("Socialhub Info. Player 2\n", _, sep="")
+            game_client_slot_idx = next(
+                filter(lambda m: m.actor_key == game_client.account_key,
+                       socialhub_info.members)
+            ).slot_idx
+            print("Player 1 slot_idx:", game_client_slot_idx)
+            async with create_game_client(email="testlogin3@test.iv") as game_client3:
+                await game_client3.socialhubs.enter_any()
+                socialhub_info3 = await game_client3.socialhubs.get_socialhub_info_push()
+                print("Socialhub Info. Player 3\n", socialhub_info3, sep="")
+                await asyncio.sleep(0.1)
+                fetch_pushes_task3 = asyncio.create_task(fetch_pushes(game_client3))
+                fetch_pushes_task1 = asyncio.create_task(fetch_pushes(game_client))
+                fetch_pushes_task2 = asyncio.create_task(fetch_pushes(game_client2))
+                await asyncio.sleep(1)
+                await game_client.matchmaker.find_single_player_battle(BR_HARD_AI_PRESET_NAME)
+                await asyncio.sleep(1)
+                await game_client.matchmaker.force_battle(BR_HARD_AI_PRESET_NAME)
+                await asyncio.sleep(8)
+
+                fetch_pushes_task1.cancel()
+                fetch_pushes_task2.cancel()
+                fetch_pushes_task3.cancel()
+                await asyncio.sleep(0.1)
+    await asyncio.sleep(1)
+
+
+# Update permanent data without checks (assert)
+async def main():
+    async with create_game_client(email="testlogin1@test.iv") as game_client:
+        print("Player 1 Log-in")
+        fetch_pushes_task1 = asyncio.create_task(fetch_pushes(game_client))
+        await asyncio.sleep(1)
+        print("Player 1 enter socialhub")
+        await game_client.socialhubs.enter_any()
+        await asyncio.sleep(0.5)
+        async with create_game_client(email="testlogin2@test.iv") as game_client2:
+            print("Player 2 Log-in")
+            fetch_pushes_task2 = asyncio.create_task(fetch_pushes(game_client2))
+            await asyncio.sleep(1)
+            print("Player 2 enter socialhub")
+            await game_client2.socialhubs.enter_any()
+            await asyncio.sleep(0.5)
+            async with create_game_client(email="testlogin3@test.iv") as game_client3:
+                print("Player 3 Log-in")
+                fetch_pushes_task3 = asyncio.create_task(fetch_pushes(game_client3))
+                await asyncio.sleep(1)
+                print("Player 3 enter socialhub")
+                await game_client3.socialhubs.enter_any()
+                await asyncio.sleep(0.5)
+                await game_client.matchmaker.find_single_player_battle(BR_HARD_AI_PRESET_NAME)
+                await asyncio.sleep(1)
+                await game_client.matchmaker.force_battle(BR_HARD_AI_PRESET_NAME)
+                await asyncio.sleep(7)
+
+                fetch_pushes_task1.cancel()
+                fetch_pushes_task2.cancel()
+                fetch_pushes_task3.cancel()
+                await asyncio.sleep(0.1)
+    await asyncio.sleep(1)
+
+
+# Update volatile data
+async def main():
+    async with create_game_client(email="testlogin1@test.iv") as game_client:
+        await game_client.socialhubs.enter_any()
+        async with create_game_client(email="testlogin2@test.iv") as game_client2:
+            await game_client2.socialhubs.enter_any()
+            socialhub_info = await game_client.socialhubs.get_socialhub_info_push()
+            print("Socialhub Info. Player 1\n", socialhub_info, sep="")
+            _ = await game_client2.socialhubs.get_socialhub_info_push()
+            print("Socialhub Info. Player 2\n", _, sep="")
+            game_client_slot_idx = next(
+                filter(lambda m: m.actor_key == game_client.account_key,
+                       socialhub_info.members)
+            ).slot_idx
+            print("Player 1 slot_idx:", game_client_slot_idx)
+            async with create_game_client(email="testlogin3@test.iv") as game_client3:
+                await game_client3.socialhubs.enter_any()
+                socialhub_info3 = await game_client3.socialhubs.get_socialhub_info_push()
+                print("Socialhub Info. Player 3\n", socialhub_info3, sep="")
+                await asyncio.sleep(0.1)
+                fetch_pushes_task3 = asyncio.create_task(fetch_pushes(game_client3))
+                fetch_pushes_task1 = asyncio.create_task(fetch_pushes(game_client))
+                fetch_pushes_task2 = asyncio.create_task(fetch_pushes(game_client2))
+                await asyncio.sleep(3)
+                await game_client.inventory.grant_hero(Hero.OPERATOR)
+                await game_client.inventory.select_hero(Hero.OPERATOR, VehicleType.STRIKER)   #Execute up 2 lines, next time down 2 lines and this way each time one by one.
+				# await game_client.inventory.grant_hero(Hero.AVENGER)
+                # await game_client.inventory.select_hero(Hero.AVENGER, VehicleType.BUGGY)
+                await asyncio.sleep(6)
+
+                fetch_pushes_task1.cancel()
+                fetch_pushes_task2.cancel()
+                fetch_pushes_task3.cancel()
+                await asyncio.sleep(0.1)
+    await asyncio.sleep(1)
+	
+	
+# Group in socialhub. One member leaves group. Push update
+async def main():
+    async with create_game_client(email="testlogin1@test.iv") as game_client:
+        print("Player 1 Log-in")
+        fetch_pushes_task1 = asyncio.create_task(fetch_pushes(game_client))
+        await asyncio.sleep(1)
+        print("Player 1 enter socialhub")
+        await game_client.socialhubs.enter_any()
+        await asyncio.sleep(0.5)
+        print("Player 1 Create Group")
+        await game_client.groups.create(b"group:group")
+        await asyncio.sleep(1)
+        async with create_game_client(email="testlogin2@test.iv") as game_client2:
+            print("Player 2 Log-in")
+            fetch_pushes_task2 = asyncio.create_task(fetch_pushes(game_client2))
+            await asyncio.sleep(1)
+            print("Send Invite to Player 2 **************")
+            await game_client.groups.send_invite(game_client2.account_key)
+            await asyncio.sleep(0.5)
+            print("Player 2 Accepts Invite **************")
+            await game_client2.groups.accept_invite(game_client.account_key)
+            await asyncio.sleep(2)
+            print("Player 1 Leave Group **************")
+            await game_client.groups.leave()
+            await asyncio.sleep(1)
+            fetch_pushes_task1.cancel()
+            fetch_pushes_task2.cancel()
+            await asyncio.sleep(0.1)
+    await asyncio.sleep(1)	

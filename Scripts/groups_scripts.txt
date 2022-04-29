@@ -1,0 +1,252 @@
+import asyncio
+
+from vbr_protocol.objects.groups import MemberState
+from vbr_protocol.deserializers import deserialize_data
+
+from system_tests.constants import GROUP_TRAINING_PRESET_NAME
+from system_tests.test_groups import check_member_state_update
+from system_tests.utils import send_arena_battle_results
+from system_tests.vbr_game_client import VBRGameClient as GameClient
+from system_tests.test_groups import get_group_key_from_onlinelist
+
+from jazz_common import Message
+
+
+async def fetch_pushes(game_client: GameClient):
+    while True:
+        push = deserialize_data(await game_client.pushes.get())
+        await game_client.on_push_received(push)
+        print(f"Push received (client: {game_client.email}): {push}")
+
+
+
+# set NOT_READY while in MM with group leader and regular member
+async def main():
+    async with GameClient(email="testlogin1@test.iv", password="123456") as game_client1:
+        print("************Player1 Login**************")
+        fetch_pushes_task = asyncio.create_task(fetch_pushes(game_client1))
+        await asyncio.sleep(1)
+        async with GameClient(email="testlogin2@test.iv", password="123456") as game_client2:
+            print("************Player2 Login**************")
+            fetch_pushes_task = asyncio.create_task(fetch_pushes(game_client2))
+            await asyncio.sleep(1)
+            print("************Player1 Create Group **************")
+            await game_client1.groups.create(b"group:group")
+            await asyncio.sleep(2)
+            print("************Send Invite to Player2**************")
+            await game_client1.groups.send_invite(game_client2.account_key)
+            await asyncio.sleep(3)
+            print("************Player2 Accepts Invite**************")
+            await game_client2.groups.accept_invite(game_client1.account_key)
+            await asyncio.sleep(3)
+            print("***************SET READY STATUS Player1***************")
+            await game_client1.groups.set_ready()
+            await asyncio.sleep(1)
+            print("***************SET READY STATUS Player2***************")
+            await game_client2.groups.set_ready()
+            await asyncio.sleep(2)
+            print("***************SET NOT READY STATUS Player1***************")
+            await game_client1.groups.set_not_ready()
+            await asyncio.sleep(4)
+            fetch_pushes_task.cancel()
+    await asyncio.sleep(1)
+
+
+# set NOT_READY while IN_BATTLE with group leader and regular member
+async def main():
+    async with GameClient(email="testlogin1@test.iv", password="123456") as game_client1:
+        print("************Player1 Login**************")
+        fetch_pushes_task = asyncio.create_task(fetch_pushes(game_client1))
+        await asyncio.sleep(1)
+        async with GameClient(email="testlogin2@test.iv", password="123456") as game_client2:
+            print("************Player2 Login**************")
+            fetch_pushes_task = asyncio.create_task(fetch_pushes(game_client2))
+            await asyncio.sleep(1)
+            print("************Player1 Create Group **************")
+            await game_client1.groups.create(b"group:group")
+            await asyncio.sleep(2)
+            print("************Send Invite to Player2**************")
+            await game_client1.groups.send_invite(game_client2.account_key)
+            await asyncio.sleep(3)
+            print("************Player2 Accepts Invite**************")
+            await game_client2.groups.accept_invite(game_client1.account_key)
+            await asyncio.sleep(3)
+			print("******************Change MM_preset to Deathmatch2***************")
+            await game_client1.groups.update_preset_name("Deathmatch2")
+            await asyncio.sleep(1)
+            print("***************SET READY STATUS Player1***************")
+            await game_client1.groups.set_ready()
+            await asyncio.sleep(1)
+            print("***************SET READY STATUS Player2***************")
+            await game_client2.groups.set_ready()
+            await asyncio.sleep(2)
+            print("***************SET NOT READY STATUS Player1***************")
+            await game_client1.groups.set_not_ready()
+            await asyncio.sleep(4)
+            fetch_pushes_task.cancel()
+    await asyncio.sleep(1)
+
+
+# set preserve_group to True. After change (first time) will come push on client with new config. !!! Don't forget to set False after testing
+async def main():
+    async with GameClient(email="testlogin8@test.iv", password="123456") as game_client:
+        fetch_pushes_task = asyncio.create_task(fetch_pushes(game_client))
+        await asyncio.sleep(1)
+        print("***********Get mm_config****************")
+        mm_config = await get_mm_config()
+        await asyncio.sleep(2)
+        for preset in mm_config["presets"].values():
+            preset["preserve_group"] = True
+        print("***********Set mm_config****************")
+        await set_mm_config(mm_config)
+        await asyncio.sleep(2)
+        print("**********CREATE GROUP*************")
+        await game_client.groups.create(b"group:group")
+        await asyncio.sleep(3)
+        print("******************Change MM_preset to Deathmatch2***************")
+        await game_client.groups.update_preset_name("Deathmatch2")
+        await asyncio.sleep(1)
+        print("***************SET READY STATUS***************")
+        await game_client.groups.set_ready()
+        await asyncio.sleep(6)
+        fetch_pushes_task.cancel()
+        await asyncio.sleep(1)
+    await asyncio.sleep(1)
+
+
+
+# Update group data (only group leader can update, regular member can send but data won't be updated)
+			print("************ Player1 Create Group **************")
+            await game_client1.groups.create(b"group:group")
+            await asyncio.sleep(2)
+            print("************Send Invite to Player2**************")
+            await game_client1.groups.send_invite(game_client2.account_key)
+            await asyncio.sleep(2)
+            print("************Player2 Accepts Invite**************")
+            await game_client2.groups.accept_invite(game_client1.account_key)
+            await asyncio.sleep(2)
+            print("************Update group data**************")
+            await game_client1.groups.update_group_data(b"new1 group")
+            await asyncio.sleep(2)
+
+
+# Revoke invite
+			print("************Revoke invite **************")
+            await game_client1.groups.revoke_invite(game_client2.account_key)
+            await asyncio.sleep(3)
+
+
+
+# Leave group
+			print("************ RLeave Group **************")
+			await game_client1.groups.leave()
+
+
+
+# Offline
+from accord_test_utils.helpers import account_key_for_email				
+				print("************Send invite to Offline **************")
+                key = account_key_for_email("offline@rnd.wargaming.net")
+                await game_client1.groups.send_invite(key)
+                await asyncio.sleep(1.5)
+
+
+# Close client
+				print("************Player1 Close Client**************")
+                game_client3.close()
+                await asyncio.sleep(2)
+
+
+# Update preset configs via get_config_push - update_preset
+			print("************ Update PRESET **************")
+			config = await game_client1.matchmaker.get_config_push()
+			preset_config = config.presets[BR_HARD_AI_PRESET_NAME]
+			preset_config.teams_layouts[1].layout = {
+				BR_HARD_AI_PRESET_NAME: LayoutInfo(num_teams=3, team_size=4),
+				SPIES_PRESET_NAME: LayoutInfo(num_teams=1, team_size=4)
+			}
+			preset_config.teams_layouts[0].weight = 1
+			preset_config.teams_layouts[1].weight = 100
+			await game_client1.matchmaker.update_preset(BR_HARD_AI_PRESET_NAME, preset_config)
+			await asyncio.sleep(0.1)
+        
+
+# Update preset configs via get_mm_config() - set_mm_config()
+			config = await get_mm_config()
+			config["presets"][DEATHMATCH_PRESET_NAME]["teams_layouts"][0]["layout"][
+				DEATHMATCH_PRESET_NAME
+			] = {
+				"num_teams": 2,
+				"team_size": 2,
+			}
+			await set_mm_config(config)
+
+
+# Join group by key (all fetch pushes tasks should be commented and needed pushes shouls be called explicitly)
+async def main():
+    async with GameClient(email="testlogin1@test.iv", password="123456") as game_client1:
+        print("************Player1 Login**************")
+        print(await game_client1.get_handshake_push())
+        print(await game_client1.inventory.get_update_push())
+        print(await game_client1.state.get_update_push())
+        print(await game_client1.stats.get_update_push())
+        print(await game_client1.matchmaker.get_config_push())
+        print(await game_client1.onlinelist.get_update_push())
+        await asyncio.sleep(1)
+        async with GameClient(email="testlogin2@test.iv", password="123456") as game_client2:
+            print("************Player2 Login**************")
+            print(await game_client2.get_handshake_push())
+            print(await game_client2.inventory.get_update_push())
+            print(await game_client2.state.get_update_push())
+            print(await game_client2.stats.get_update_push())
+            print(await game_client2.matchmaker.get_config_push())
+            print(await game_client2.onlinelist.get_update_push())
+            await asyncio.sleep(1)
+            print("************Player1 Create Group **************")
+            await game_client1.groups.create(b"group1:group1")
+            await game_client1.state.assert_in_group()
+            print("************Player2 Join Group by Key **************")
+            group_key = await get_group_key_from_onlinelist(game_client2, game_client1)
+            await game_client2.groups.join(group_key)
+            await asyncio.sleep(0.1)
+            print(await game_client2.state.get_update_push())
+            await asyncio.sleep(0.5)
+            print(await game_client2.onlinelist.get_update_push())
+            await asyncio.sleep(0.5)
+    await asyncio.sleep(1)
+
+
+# Force battle
+async def main():
+    async with GameClient(email="testlogin1@test.iv", password="123456") as game_client1:
+        print("************Player1 Login**************")
+        fetch_pushes_task = asyncio.create_task(fetch_pushes(game_client1))
+        await asyncio.sleep(1)
+        async with GameClient(email="testlogin2@test.iv", password="123456") as game_client2:
+            print("************Player2 Login**************")
+            fetch_pushes_task = asyncio.create_task(fetch_pushes(game_client2))
+            await asyncio.sleep(1)
+            print("************Player1 Create Group **************")
+            await game_client1.groups.create(b"group1:group1")
+            await asyncio.sleep(2)
+            print("************ Send Invite to Player2**************")
+            await game_client1.groups.send_invite(game_client2.account_key)
+            await asyncio.sleep(1.5)
+            print("************Player 2 Accepts Invite **************")
+            await game_client2.groups.accept_invite(game_client1.account_key)
+            await asyncio.sleep(1.5)
+            print("***************SET READY STATUS Player1***************")
+            await game_client1.groups.set_ready()
+            await asyncio.sleep(1)
+            print("***************SET READY STATUS Player3***************")
+            await game_client2.groups.set_ready()
+            await asyncio.sleep(1)
+            print("***************Force Battle***************")
+            await game_client1.groups.force_battle()
+            await asyncio.sleep(2)
+
+
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

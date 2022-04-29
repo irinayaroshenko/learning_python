@@ -1,0 +1,130 @@
+# Config revision number. Will be updated automatically during dynamic updates in KV service
+# and using to check that clients will use the same version of matchmaking configuration
+revision: 1
+presets:
+  BattleRoyaleEasyAI:
+    # Path of the picture for this preset
+    pic: ''
+    # Description of the current game preset
+    description: 'Battle royale preset with easy bots'
+    # This parameter determines team structures (target presets with num_teams/team_size parameters)
+    # each teams layout contains weight, which will be used for a weighted random choice.
+    # This parameter is optional, if there is no teams layout for current preset - player will wait in the queue
+    # until he will be picked for another game mode with teams layout
+    teams_layouts:
+      - weight: 50
+        layout:
+          BattleRoyaleEasyAI:
+            num_teams: 4
+            team_size: 4
+      - weight: 50
+        layout:
+          BattleRoyaleEasyAI:
+            num_teams: 3
+            team_size: 4
+          Spies:
+            num_teams: 1
+            team_size: 4
+    # additional presets will be send to arena and using to determine which additional presets (if any)
+    # is possible to add in the current battle
+    additional_preset_weights:
+      Convoy: 50
+    # Enum with game mode which is included in this preset. This parameter will be sent to the arena server as a main game mode.
+    # The matchmaker does not need it in this iteration, but it may be needed in the future.
+    # Variants are serialized as integers
+    # 0: deathmatch
+    # 1: battle_royale
+    # 2: convoy
+    # 3: race
+    # 4: spy
+    game_mode: 1
+    # Represents a string id - a name of the preset of the specific settings for the game mode. The settings are configured in Unreal, on client and arena, settings are not known to meta server.
+    game_mode_preset: 'deathmatch'
+    # Map name.
+    map_name: '/Game/Maps/03_TDM_Test/03_TDM_Test'
+    # Docker container alias for CloudLift
+    container: 'container'
+    # Defines whether group leaves the matchmaker queue and joins it back if one of the group members leaves the group.
+    # If false, group should leave the matchmaker queue and join it back with the updated group of members.
+    # If true, group should just leave the matchmaker.
+    preserve_group: true
+
+  BattleRoyaleHardAI:
+    pic: ''
+    description: 'Battle royale preset with hard bots'
+    teams_layouts:
+      - weight: 100
+        layout:
+          BattleRoyaleHardAI:
+            num_teams: 4
+            team_size: 4
+      - weight: 0
+        layout:
+          BattleRoyaleHardAI:
+            num_teams: 3
+            team_size: 4
+          Spies:
+            num_teams: 1
+            team_size: 4
+    additional_preset_weights:
+      Convoy: 50
+    game_mode: 1
+    game_mode_preset: 'deathmatch'
+    map_name: '/Game/Maps/03_TDM_Test/03_TDM_Test'
+    container: 'container'
+    preserve_group: true
+
+  DeathmatchSingle:
+    pic: ''
+    description: 'Classic deathmatch only for a single player'
+    teams_layouts:
+      - weight: 100
+        layout:
+          DeathmatchSingle:
+            num_teams: 1
+            team_size: 1
+    additional_preset_weights: {}
+    game_mode: 0
+    game_mode_preset: 'deathmatch'
+    map_name: '/Game/Maps/03_TDM_Test/03_TDM_Test'
+    container: 'container'
+    preserve_group: true
+
+  Deathmatch:
+    pic: ''
+    description: 'Classic deathmatch'
+    teams_layouts:
+      - weight: 100
+        layout:
+          Deathmatch:
+            num_teams: 4
+            team_size: 4
+    additional_preset_weights:
+      Convoy: 50
+    game_mode: 0
+    game_mode_preset: 'deathmatch'
+    map_name: '/Game/Maps/03_TDM_Test/03_TDM_Test'
+    container: 'container'
+    preserve_group: true
+
+  Spies:
+    game_mode: 4
+    game_mode_preset: 'deathmatch'
+    pic: ''
+    description: ''
+    teams_layouts: []
+    additional_preset_weights: {}
+    map_name: ''
+    container: ''
+    preserve_group: false
+
+  Convoy:
+    game_mode: 2
+    game_mode_preset: 'deathmatch'
+    pic: ''
+    description: ''
+    teams_layouts: []
+    additional_preset_weights: {}
+    map_name: ''
+    container: ''
+    preserve_group: false
